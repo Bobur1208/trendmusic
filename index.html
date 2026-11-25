@@ -282,6 +282,34 @@ $('stage').innerHTML=reactor+'<div class="nm">Bobur bek</div>';
 $('home').addEventListener('scroll',()=>$('stage').style.setProperty('--so',Math.max(.15,1-$('home').scrollTop/280)),{passive:true});
 go('home');
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script><script>
+(()=>{
+const API='https://discoveryprovider.audius.co/v1',APP='app_name=TRENDMUSIC';
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+function addTrack(x){const url=`${API}/tracks/${x.id}/stream?${APP}`;let i=T.findIndex(t=>t.url===url);if(i>=0)return i;
+const h=hue(x.title||'x');T.push({t:x.title||'Untitled',a:(x.user&&x.user.name)||'Artist',h:[h,(h+40)%360],d:x.duration||0,g:'Online',url});return T.length-1}
+async function api(p){const r=await fetch(API+p+(p.includes('?')?'&':'?')+APP);if(!r.ok)throw 0;return (await r.json()).data}
+let hits=[],loaded=0;
+function fill(){const el=$('onRail');if(!el)return;
+el.innerHTML=hits.length?hits.map(i=>`<div class="card" data-p="${i}" data-l="online"><div class="art" style="${art(T[i])}"></div><b>${T[i].t}</b><span class="sub">${T[i].a}</span></div>`).join(''):'<div class="sub" id="onMsg">Loading…</div>'}
+function load(){if(loaded)return;loaded=1;
+api('/tracks/trending?time=week&limit=12').then(d=>{hits=d.map(addTrack);lists.online=hits;fill()})
+.catch(()=>{loaded=0;const m=$('onMsg');if(m)m.textContent='Could not load online songs. Check your internet.'})}
+const oldHome=renderHome;
+renderHome=function(){oldHome();const b=document.createElement('div');b.innerHTML='<h2>Free online songs</h2><div class="rail" id="onRail"></div>';
+$('home').insertBefore(b,$('home').lastElementChild);fill();load()};
+let st;
+function onlineSearch(){clearTimeout(st);const q=$('q').value.trim();if(q.length<2||S.genre!=='All')return;
+st=setTimeout(async()=>{try{const d=await api('/tracks/search?query='+encodeURIComponent(q)+'&limit=10');
+if($('q').value.trim()!==q)return;const ids=d.map(addTrack),e=$('results');
+if(!ids.length)return;const em=e.querySelector('.empty');if(em)em.remove();
+e.insertAdjacentHTML('beforeend','<h2>Online results</h2>'+ids.map(i=>row(i,0,'s')).join(''))}catch(_){}},450)}
+const oldSearch=renderSearch;
+renderSearch=function(){oldSearch();onlineSearch()};
+$('q').addEventListener('input',onlineSearch);
+install=function(){if(dp){dp.prompt();dp=null}else{toast('Chrome menu ⋮ → Add to Home screen');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('on'),5000)}};
+if(S.tab==='home')renderHome();
+})();
 </script>
 </body>
 </html>
